@@ -109,7 +109,7 @@ OPTIONS(
 -- ARCHITECTURAL DESIGN DECISIONS (FINOPS & GOVERNANCE):
 -- 1. Audit-Grade Financial Precision: Enforces fixed-point NUMERIC(18, 2) across
 --    all monetary fields to prevent IEEE 754 floating-point approximation errors,
---    guaranteeing SOX-compliant rounding across multi-POS cascade aggregations.
+--    guaranteeing IFRS and GAAP audit-grade rounding across multi-POS cascade aggregations.
 -- 2. FinOps Query Optimization: Time-series partitioning (`year_month`) combined
 --    with multi-column clustering (`pos_id`, `driver_id`) optimizes data pruning,
 --    reducing bytes billed and accelerating analytical queries by up to 85%.
