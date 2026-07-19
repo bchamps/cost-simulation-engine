@@ -1,0 +1,6 @@
+{
+  "tables": [
+    {"name": "cost_drivers", "columns": ["pos_id", "driver_name", "monthly_cost"]},
+    {"name": "p_l_structure", "columns": ["line_item", "parent", "value"]}
+  ]
+}
