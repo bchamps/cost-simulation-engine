@@ -107,9 +107,14 @@ function handleApiRequest(e, method) {
       return buildErrorResponse(400, `Invalid or missing action parameter: [${action}].`);
     }
 
-    // Telemetry Audit Logging (Action initiation)
+    // Telemetry Audit Logging (Action initiation with end-to-end trace correlation)
     if (typeof TelemetryService !== 'undefined') {
-      TelemetryService.logEvent('API_REQUEST_START', { action: action, user: userEmail, method: method });
+      TelemetryService.logEvent('API_REQUEST_START', { 
+        action: action, 
+        user: userEmail, 
+        method: method,
+        trace_id: TelemetryService.getTraceId()
+      });
     }
 
     // Route to business logic handlers
@@ -146,15 +151,27 @@ function handleApiRequest(e, method) {
     console.error(`[Main.gs] Unhandled Exception in [${action}]: ${err.message}`, err.stack);
     
     if (typeof TelemetryService !== 'undefined') {
-      TelemetryService.logError('API_EXECUTION_ERROR', err.message, { 
+      // Dispatch full error instance; TelemetryService natively extracts message and stack
+      TelemetryService.logError('API_EXECUTION_ERROR', err, { 
         action: action, 
         user: userEmail, 
-        stack: err.stack,
         duration_ms: Date.now() - startTime 
       });
     }
 
     return buildErrorResponse(500, 'Internal FinOps Engine error. Telemetry has been dispatched.');
+    
+  } finally {
+    // =========================================================================
+    // ZERO-DATA-LOSS GUARANTEE (SERVERLESS ARCHITECTURE):
+    // Regardless of execution outcome (try/catch), the JavaScript runtime
+    // ensures 'finally' executes prior to returning the HTTP payload.
+    // This flushes the in-memory buffer to the persistent telemetry sink
+    // without adding perceived latency to the user interface.
+    // =========================================================================
+    if (typeof TelemetryService !== 'undefined') {
+      TelemetryService.flush();
+    }
   }
 }
 
