@@ -12,9 +12,19 @@
 # Usage: python generate_synthetic_data.py
 # =============================================================================
 
-import pandas as pd
-import numpy as np
+import sys
 from datetime import datetime
+
+try:
+    import pandas as pd
+    import numpy as np
+except Exception as e:
+    sys.stderr.write(
+        "[ERROR] Required dependencies not available: pandas and numpy must be installed.\n"
+        "Install with: pip install pandas numpy\n"
+        f"Original error: {e}\n"
+    )
+    sys.exit(1)
 
 # ---------------------------------------------------------------------------
 # 1. GLOBAL CONFIGURATION & FINOPS DETERMINISM
