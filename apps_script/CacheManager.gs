@@ -1,4 +1,3 @@
-// CacheManager � CacheService wrapper to reduce latency and BigQuery costs
 /**
  * =============================================================================
  * COST SIMULATION ENGINE – CACHE MANAGER
