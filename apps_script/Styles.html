@@ -1,1 +1,227 @@
-<!-- Shared styles (Tailwind, Bootstrap, custom CSS) -->
+<!-- =============================================================================
+COST SIMULATION ENGINE – SHARED STYLES & DEPENDENCIES
+Repository: cost-simulation-engine
+Description: Base design system for the P&L Simulator UI.
+             Loads Tailwind CSS (utility-first), Apache ECharts and Lucide Icons.
+             Uses standard CSS for custom components to prevent PostCSS/IDE linter
+             errors and eliminate runtime CDN compilation overhead.
+============================================================================= -->
+
+<!-- ---------------------------------------------------------------------------
+1. FONTS & ICONS (Inter, JetBrains Mono & Lucide)
+---------------------------------------------------------------------------- -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<!-- ---------------------------------------------------------------------------
+2. TAILWIND CSS (CDN Utility-First Engine with FinOps Custom Palette)
+---------------------------------------------------------------------------- -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          canvas: '#F8FAFC',       // Slate 50 - Background canvas
+          surface: '#FFFFFF',      // White - Cards and containers
+          border: '#E2E8F0',       // Slate 200 - Clean structural dividers
+          primary: {
+            DEFAULT: '#334155',    // Slate 700 - Body typography
+            dark: '#0F172A',       // Slate 900 - Headers and key emphasis
+            light: '#64748B'       // Slate 500 - Captions and secondary labels
+          },
+          finance: {
+            blue: '#1E40AF',       // Blue 800 - Primary interactive elements
+            indigo: '#3730A3',     // Indigo 800 - Secondary actions
+          },
+          positive: {
+            DEFAULT: '#059669',    // Emerald 600 - EBITDA expansion / savings
+            light: '#D1FAE5'       // Emerald 100 - Badge background
+          },
+          negative: {
+            DEFAULT: '#DC2626',    // Red 600 - OPEX excess / risk indicators
+            light: '#FEE2E2'       // Red 100 - Badge background
+          }
+        },
+        fontFamily: {
+          sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'] // Critical for financial statement alignment
+        }
+      }
+    }
+  }
+</script>
+
+<!-- ---------------------------------------------------------------------------
+3. APACHE ECHARTS (Interactive Multi-Axis Visualizations)
+---------------------------------------------------------------------------- -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+
+<!-- ---------------------------------------------------------------------------
+4. CUSTOM COMPONENT STYLES & FINOPS PATTERNS (Standard W3C CSS)
+---------------------------------------------------------------------------- -->
+<style>
+  /* 4.1 Global Resets & Selection Styling */
+  body {
+    background-color: #F8FAFC;
+    color: #334155;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  ::selection {
+    background-color: rgba(30, 64, 175, 0.1);
+    color: #0F172A;
+  }
+
+  /* 4.2 KPI Card System (Visibility of System Status) */
+  .kpi-card {
+    background-color: #FFFFFF;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+  }
+  
+  .kpi-card:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.06);
+    border-color: #CBD5E1;
+  }
+  
+  .kpi-value {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #0F172A;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.025em;
+    line-height: 1;
+    margin: 0.35rem 0;
+  }
+  
+  .kpi-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748B;
+    font-weight: 600;
+    display: block;
+  }
+
+  /* 4.3 Financial Tables (High Data-Ink Ratio) */
+  .fin-table-container {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 0.5rem;
+    border: 1px solid #E2E8F0;
+    background-color: #FFFFFF;
+  }
+  
+  .fin-table {
+    width: 100%;
+    text-align: left;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+  }
+  
+  .fin-table th {
+    background-color: #F8FAFC;
+    color: #64748B;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid #E2E8F0;
+    text-align: right;
+    user-select: none;
+  }
+  
+  .fin-table th:first-child {
+    text-align: left;
+  }
+  
+  .fin-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #F1F5F9;
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    color: #0F172A;
+  }
+  
+  .fin-table td:first-child {
+    text-align: left;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 500;
+  }
+  
+  .fin-table tr:hover td {
+    background-color: rgba(248, 250, 252, 0.8);
+    transition: background-color 0.15s ease;
+  }
+
+  /* 4.4 Layout & Interactive Containers */
+  .chart-box {
+    background-color: #FFFFFF;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    min-height: 320px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .filter-drawer {
+    background-color: #FFFFFF;
+    border-right: 1px solid #E2E8F0;
+    transition: all 0.3s ease-in-out;
+    overflow-x: hidden;
+    width: 18rem;
+  }
+  
+  .filter-drawer.collapsed {
+    width: 0;
+    padding: 0;
+    border: none;
+    opacity: 0;
+  }
+
+  /* 4.5 SPA Engine & Utility Animations */
+  .view-section {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.15s ease-in-out;
+  }
+  
+  .view-section.active {
+    display: block;
+    opacity: 1;
+  }
+  
+  .status-saving {
+    pointer-events: none;
+    opacity: 0.5;
+    filter: grayscale(0.5);
+  }
+  
+  /* 4.6 Custom Scrollbar for High-Density Analytical Views */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #F1F5F9;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+  }
+</style>
