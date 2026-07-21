@@ -1,1 +1,433 @@
-<!-- Executive Dashboard � cards, CAGR, summary table, bridge, scatter, map -->
+<!-- =============================================================================
+COST SIMULATION ENGINE – EXECUTIVE DASHBOARD VIEW (V3 GOLD STANDARD)
+Repository: cost-simulation-engine
+File: Dashboard.html
+Description: Enterprise SPA Dashboard with Executive Filter Toolbar, high-contrast
+             data-ink typography, ECharts EBITDA bridge, and automatic lifecycle
+             execution for both Google Apps Script and asynchronous DOM injection.
+============================================================================= -->
+
+<div id="dashboard-view" class="space-y-6 animate-fadeIn text-slate-800">
+
+  <!-- ---------------------------------------------------------------------------
+  1. EXECUTIVE FILTER TOOLBAR (Interactive Controls)
+  ---------------------------------------------------------------------------- -->
+  <div class="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-wrap items-center justify-between gap-4">
+    
+    <div class="flex items-center gap-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+      <h1 class="text-sm font-bold uppercase tracking-wider text-slate-800">Executive Cost Overview</h1>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="flex flex-wrap items-center gap-3 text-xs font-sans">
+      
+      <!-- Scenario Selector -->
+      <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded px-2.5 py-1.5">
+        <span class="text-slate-500 font-medium">Scenario:</span>
+        <select id="filter-scenario" onchange="DashboardController.applyFilters()" class="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer">
+          <option value="base">Base Baseline (YTD)</option>
+          <option value="optimistic">Optimistic (+5% GMV)</option>
+          <option value="stressed">Stressed (-8% Margin)</option>
+        </select>
+      </div>
+
+      <!-- Year Selector -->
+      <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded px-2.5 py-1.5">
+        <span class="text-slate-500 font-medium">Year:</span>
+        <select id="filter-year" onchange="DashboardController.applyFilters()" class="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer font-mono">
+          <option value="2026" selected>2026</option>
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+        </select>
+      </div>
+
+      <!-- Action Button: Simulate -->
+      <button type="button" onclick="DashboardController.applyFilters()" class="bg-slate-800 hover:bg-slate-700 text-white font-medium px-3 py-1.5 rounded transition-colors shadow-sm flex items-center gap-1.5">
+        <span>Refresh Data</span>
+      </button>
+
+    </div>
+
+  </div>
+
+  <!-- ---------------------------------------------------------------------------
+  2. EXECUTIVE KPI CARDS ROW
+  ---------------------------------------------------------------------------- -->
+  <div id="kpi-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Rendered dynamically via JavaScript -->
+    <div class="bg-white border border-slate-200 p-4 rounded-lg shadow-sm animate-pulse h-24"></div>
+    <div class="bg-white border border-slate-200 p-4 rounded-lg shadow-sm animate-pulse h-24"></div>
+    <div class="bg-white border border-slate-200 p-4 rounded-lg shadow-sm animate-pulse h-24"></div>
+    <div class="bg-white border border-slate-200 p-4 rounded-lg shadow-sm animate-pulse h-24"></div>
+  </div>
+
+  <!-- ---------------------------------------------------------------------------
+  3. SUMMARY TABLE & EBITDA WATERFALL BRIDGE
+  ---------------------------------------------------------------------------- -->
+  <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+    
+    <!-- 3.1 State Performance YoY Summary Table -->
+    <div class="xl:col-span-5 bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700">Performance by State (UF)</h2>
+          <span class="text-[11px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-slate-600 font-mono">
+            YoY Comparison
+          </span>
+        </div>
+        
+        <div class="overflow-y-auto max-h-[340px]">
+          <table class="w-full text-left text-xs" id="summary-table">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
+                <th class="pb-2">State</th>
+                <th class="pb-2 text-right">GMV</th>
+                <th class="pb-2 text-right">YoY</th>
+                <th class="pb-2 text-right">Net Rev</th>
+                <th class="pb-2 text-right">YoY</th>
+                <th class="pb-2 text-right">EBITDA</th>
+                <th class="pb-2 text-right">YoY</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 font-mono text-[11px]">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div class="mt-3 pt-2 border-t border-slate-100 text-[11px] text-slate-400 flex justify-between font-sans">
+        <span>Top 5 UFs represent 74% of total GMV</span>
+        <span class="font-mono text-slate-500">Live BigQuery Sync</span>
+      </div>
+    </div>
+
+    <!-- 3.2 EBITDA Bridge (Waterfall Chart) -->
+    <div class="xl:col-span-7 bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col justify-between">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+        <div>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700">EBITDA Bridge &bull; Strategic Levers</h2>
+          <p class="text-[11px] text-slate-400">Accumulated margin variance from baseline setup</p>
+        </div>
+        <span class="text-[11px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-slate-600 font-mono">
+          Waterfall Analysis
+        </span>
+      </div>
+      
+      <!-- ECharts Canvas -->
+      <div id="waterfall-chart" class="w-full h-[340px]"></div>
+    </div>
+
+  </div>
+
+  <!-- ---------------------------------------------------------------------------
+  4. DISPERSION ANALYSIS & GEOGRAPHIC RANKING
+  ---------------------------------------------------------------------------- -->
+  <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+    
+    <!-- 4.1 GMV vs EBITDA Margin Scatter Plot (Log Scale) -->
+    <div class="xl:col-span-6 bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col justify-between">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+        <div>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700">UF Dispersion &bull; GMV vs EBITDA Margin</h2>
+          <p class="text-[11px] text-slate-400">Logarithmic scale X-axis for extreme value normalization</p>
+        </div>
+        <span class="text-[11px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-slate-600 font-mono">
+          Log Scale
+        </span>
+      </div>
+      
+      <div id="scatter-chart" class="w-full h-[340px]"></div>
+    </div>
+
+    <!-- 4.2 Geographic Ranking List -->
+    <div class="xl:col-span-6 bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col justify-between">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+        <div>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700">Regional Efficiency Ranking</h2>
+          <p class="text-[11px] text-slate-400">Ranked by EBITDA contribution percentage</p>
+        </div>
+        <span class="text-[11px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-slate-600 font-mono">
+          27 Federative Units
+        </span>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 h-[340px] overflow-y-auto pr-1 font-sans" id="uf-ranking">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- =============================================================================
+5. DASHBOARD CONTROLLER & ASYNCHRONOUS LIFECYCLE
+============================================================================= -->
+<script>
+  /**
+   * Global Dashboard Controller
+   * Exposed to window object to allow robust execution in SPA routing or local mocks.
+   */
+  window.DashboardController = (function() {
+    const activeCharts = [];
+
+    // 5.1 HYBRID BRIDGE DATA ENGINE
+    async function fetchDashboardData(params) {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .getExecutiveDashboard(params);
+        });
+      }
+
+      // Local Mock Engine (Returns high-contrast data for VS Code Preview)
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve({
+            cards: [
+              { metric: 'Gross Revenue (GMV)', absolute_value: 142800000, cagr_decimal: 0.124 },
+              { metric: 'Net Revenue', absolute_value: 118500000, cagr_decimal: 0.089 },
+              { metric: 'Network EBITDA', absolute_value: 24200000, cagr_decimal: 0.152 },
+              { metric: 'Avg OPEX / POS', absolute_value: 1245, cagr_decimal: -0.034 }
+            ],
+            summaryTable: [
+              { state: 'SP', total_gmv: 68400000, gmv_yoy: 0.142, total_net_revenue: 56800000, net_revenue_yoy: 0.121, total_ebitda: 14200000, ebitda_yoy: 0.184 },
+              { state: 'RJ', total_gmv: 24100000, gmv_yoy: 0.045, total_net_revenue: 19800000, net_revenue_yoy: 0.032, total_ebitda: 3800000, ebitda_yoy: -0.021 },
+              { state: 'MG', total_gmv: 18500000, gmv_yoy: 0.098, total_net_revenue: 15400000, net_revenue_yoy: 0.085, total_ebitda: 2900000, ebitda_yoy: 0.112 },
+              { state: 'PR', total_gmv: 14200000, gmv_yoy: -0.012, total_net_revenue: 11900000, net_revenue_yoy: -0.018, total_ebitda: 1800000, ebitda_yoy: -0.045 },
+              { state: 'RS', total_gmv: 11200000, gmv_yoy: 0.065, total_net_revenue: 9400000, net_revenue_yoy: 0.054, total_ebitda: 1500000, ebitda_yoy: 0.078 }
+            ],
+            waterfall: [
+              { lever_name: '2024 Base', accumulated_variation: 18500000, is_total: true },
+              { lever_name: 'POS Exp', accumulated_variation: 4200000 },
+              { lever_name: 'Logistics', accumulated_variation: -1800000 },
+              { lever_name: 'Tax Opt', accumulated_variation: 2100000 },
+              { lever_name: 'Risk SLA', accumulated_variation: -800000 },
+              { lever_name: '2030 Sim', accumulated_variation: 22200000, is_total: true }
+            ],
+            scatter: [
+              { state: 'SP', gmv: 68400000, ebitda_margin_pct: 0.207 },
+              { state: 'RJ', gmv: 24100000, ebitda_margin_pct: 0.157 },
+              { state: 'MG', gmv: 18500000, ebitda_margin_pct: 0.156 },
+              { state: 'PR', gmv: 14200000, ebitda_margin_pct: 0.126 },
+              { state: 'RS', gmv: 11200000, ebitda_margin_pct: 0.133 },
+              { state: 'SC', gmv: 8900000, ebitda_margin_pct: 0.168 },
+              { state: 'BA', gmv: 7500000, ebitda_margin_pct: 0.112 }
+            ]
+          });
+        }, 150);
+      });
+    }
+
+    // 5.2 INIT & FILTER HANDLING
+    async function init(params = {}) {
+      const year = params.year || document.getElementById('filter-year')?.value || '2026';
+      const scenario = params.scenario || document.getElementById('filter-scenario')?.value || 'base';
+
+      try {
+        const data = await fetchDashboardData({ year, scenario });
+        renderKPICards(data.cards);
+        renderSummaryTable(data.summaryTable);
+        renderWaterfallChart(data.waterfall);
+        renderScatterChart(data.scatter);
+        renderUFRanking(data.scatter);
+        
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        setupResponsiveCharts();
+      } catch (err) {
+        console.error('[DashboardController] Render failed:', err);
+      }
+    }
+
+    function applyFilters() {
+      const year = document.getElementById('filter-year').value;
+      const scenario = document.getElementById('filter-scenario').value;
+      init({ year, scenario });
+    }
+
+    // 5.3 RENDER METHODS (High Contrast & Minimalist Palette)
+    function renderKPICards(cards) {
+      const container = document.getElementById('kpi-cards');
+      if (!cards || !cards.length) return;
+
+      container.innerHTML = cards.map(card => {
+        const value = formatCompactNumber(card.absolute_value);
+        const cagr = card.cagr_decimal !== undefined ? (card.cagr_decimal * 100).toFixed(1) + '%' : '—';
+        const isPositive = card.cagr_decimal >= 0;
+        
+        const badgeStyle = isPositive 
+          ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' 
+          : 'text-rose-700 bg-rose-50 border border-rose-200';
+
+        return `
+          <div class="bg-white border border-slate-200 p-4 rounded-lg shadow-sm flex flex-col justify-between transition-all hover:border-slate-300">
+            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">${card.metric}</span>
+            <div class="text-2xl font-extrabold text-slate-800 my-2 font-mono">${value}</div>
+            <div class="flex items-center justify-between text-xs mt-2 border-t border-slate-100 pt-2">
+              <span class="text-slate-400 font-medium">3Y CAGR</span>
+              <span class="font-mono font-bold px-1.5 py-0.5 rounded text-[11px] ${badgeStyle}">
+                ${cagr}
+              </span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderSummaryTable(rows) {
+      const tbody = document.querySelector('#summary-table tbody');
+      if (!rows || !rows.length) return;
+
+      tbody.innerHTML = rows.map(r => {
+        const gmvYoY = formatYoY(r.gmv_yoy);
+        const revYoY = formatYoY(r.net_revenue_yoy);
+        const ebitdaYoY = formatYoY(r.ebitda_yoy);
+
+        return `
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="py-2.5 font-bold text-slate-800 font-sans">${r.state}</td>
+            <td class="py-2.5 text-right text-slate-700">${formatCompactNumber(r.total_gmv)}</td>
+            <td class="py-2.5 text-right font-bold ${gmvYoY.style}">${gmvYoY.text}</td>
+            <td class="py-2.5 text-right text-slate-700">${formatCompactNumber(r.total_net_revenue)}</td>
+            <td class="py-2.5 text-right font-bold ${revYoY.style}">${revYoY.text}</td>
+            <td class="py-2.5 text-right text-slate-700">${formatCompactNumber(r.total_ebitda)}</td>
+            <td class="py-2.5 text-right font-bold ${ebitdaYoY.style}">${ebitdaYoY.text}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    function renderWaterfallChart(data) {
+      const dom = document.getElementById('waterfall-chart');
+      if (!dom || typeof echarts === 'undefined') return;
+      
+      const chart = echarts.init(dom);
+      activeCharts.push(chart);
+
+      const categories = data.map(d => d.lever_name);
+      const baseSeries = [];
+      const positiveSeries = [];
+      const negativeSeries = [];
+      const totalSeries = [];
+      let currentAccumulator = 0;
+
+      data.forEach(item => {
+        const val = Number(item.accumulated_variation) || 0;
+        if (item.is_total) {
+          baseSeries.push(0); positiveSeries.push('-'); negativeSeries.push('-'); totalSeries.push(val);
+          currentAccumulator = val;
+        } else {
+          totalSeries.push('-');
+          if (val >= 0) {
+            baseSeries.push(currentAccumulator); positiveSeries.push(val); negativeSeries.push('-');
+            currentAccumulator += val;
+          } else {
+            currentAccumulator += val;
+            baseSeries.push(currentAccumulator); positiveSeries.push('-'); negativeSeries.push(Math.abs(val));
+          }
+        }
+      });
+
+      chart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '3%', right: '4%', bottom: '8%', top: '8%', containLabel: true },
+        xAxis: { type: 'category', data: categories, axisLabel: { interval: 0, rotate: 15, fontSize: 11, color: '#475569' } },
+        yAxis: { type: 'value', axisLabel: { formatter: v => formatCompactNumber(v), fontSize: 11, color: '#475569' }, splitLine: { lineStyle: { color: '#F1F5F9' } } },
+        series: [
+          { name: 'Base', type: 'bar', stack: 'bridge', itemStyle: { color: 'rgba(0,0,0,0)' }, data: baseSeries },
+          { name: 'Expansion', type: 'bar', stack: 'bridge', itemStyle: { color: '#059669', borderRadius: [2, 2, 0, 0] }, data: positiveSeries },
+          { name: 'Contraction', type: 'bar', stack: 'bridge', itemStyle: { color: '#E11D48', borderRadius: [0, 0, 2, 2] }, data: negativeSeries },
+          { name: 'Milestone', type: 'bar', stack: 'bridge', itemStyle: { color: '#2563EB', borderRadius: [2, 2, 0, 0] }, data: totalSeries }
+        ]
+      });
+    }
+
+    function renderScatterChart(data) {
+      const dom = document.getElementById('scatter-chart');
+      if (!dom || typeof echarts === 'undefined') return;
+
+      const chart = echarts.init(dom);
+      activeCharts.push(chart);
+
+      const plotData = data.map(d => [Number(d.gmv), Number(d.ebitda_margin_pct) * 100, d.state]);
+
+      chart.setOption({
+        tooltip: {
+          backgroundColor: '#1E293B', borderColor: '#334155', textStyle: { color: '#F8FAFC', fontSize: 12 },
+          formatter: p => `<strong>${p.data[2]} State</strong><br/>GMV: $${formatCompactNumber(p.data[0])}<br/>EBITDA Margin: ${p.data[1].toFixed(1)}%`
+        },
+        grid: { left: '5%', right: '5%', top: '10%', bottom: '12%', containLabel: true },
+        xAxis: { type: 'log', name: 'GMV (Log Scale)', nameLocation: 'middle', nameGap: 25, axisLabel: { formatter: v => formatCompactNumber(v), color: '#475569' }, splitLine: { lineStyle: { color: '#F1F5F9' } } },
+        yAxis: { type: 'value', name: 'EBITDA Margin (%)', axisLabel: { formatter: '{value}%', color: '#475569' }, splitLine: { lineStyle: { color: '#F1F5F9', type: 'dashed' } } },
+        series: [{ type: 'scatter', data: plotData, symbolSize: 12, itemStyle: { color: '#3B82F6', opacity: 0.8, borderColor: '#1D4ED8', borderWidth: 1.5 }, label: { show: true, formatter: p => p.data[2], position: 'top', fontSize: 10, fontWeight: 'bold', color: '#334155' } }]
+      });
+    }
+
+    function renderUFRanking(scatterData) {
+      const container = document.getElementById('uf-ranking');
+      if (!container || !scatterData) return;
+
+      const sorted = [...scatterData].sort((a, b) => (Number(b.ebitda_margin_pct) || 0) - (Number(a.ebitda_margin_pct) || 0));
+      
+      container.innerHTML = sorted.map((item, index) => {
+        const margin = item.ebitda_margin_pct ? (Number(item.ebitda_margin_pct) * 100).toFixed(1) + '%' : '—';
+        const isTop3 = index < 3;
+        const badgeStyle = isTop3 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 font-medium';
+
+        return `
+          <div class="flex items-center justify-between p-2.5 rounded border border-slate-200 bg-white hover:border-slate-300 transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span class="w-6 h-6 rounded flex items-center justify-center text-xs font-mono font-bold ${badgeStyle}">
+                ${String(index + 1).padStart(2, '0')}
+              </span>
+              <div>
+                <div class="text-xs font-bold text-slate-800 font-sans">State of ${item.state}</div>
+                <div class="text-[10px] text-slate-400 font-mono">GMV: $${formatCompactNumber(item.gmv)}</div>
+              </div>
+            </div>
+            <div class="text-right font-mono font-bold text-xs text-emerald-600">
+              ${margin}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function setupResponsiveCharts() {
+      window.addEventListener('resize', () => {
+        activeCharts.forEach(chart => { if (chart && typeof chart.resize === 'function') chart.resize(); });
+      });
+    }
+
+    function formatCompactNumber(val) {
+      const num = Number(val);
+      if (isNaN(num) || num === 0) return '0.0';
+      const abs = Math.abs(num);
+      if (abs >= 1e9) return (num / 1e9).toFixed(1) + 'Bi';
+      if (abs >= 1e6) return (num / 1e6).toFixed(1) + 'Mi';
+      if (abs >= 1e3) return (num / 1e3).toFixed(1) + 'k';
+      return num.toFixed(1);
+    }
+
+    function formatYoY(yoy) {
+      if (yoy === null || yoy === undefined || isNaN(yoy)) return { text: 'N/A', style: 'text-slate-400' };
+      const pct = (yoy * 100).toFixed(1);
+      const isPositive = yoy >= 0;
+      return {
+        text: isPositive ? `+${pct}%` : `${pct}%`,
+        style: isPositive ? 'text-emerald-600' : 'text-rose-600'
+      };
+    }
+
+    return { init: init, applyFilters: applyFilters };
+  })();
+
+  // 5.4 SMART LIFECYCLE TRIGGER
+  // Runs immediately if DOM is ready, otherwise waits for DOMContentLoaded
+  if (document.readyState !== 'loading') {
+    window.DashboardController.init();
+  } else {
+    document.addEventListener('DOMContentLoaded', () => window.DashboardController.init());
+  }
+</script>
