@@ -1,1 +1,320 @@
-<!-- P&L Simulator � editable fields, cascading impact, vertical/horizontal analysis -->
+<!-- =============================================================================
+COST SIMULATION ENGINE – P&L SIMULATOR
+Repository: cost-simulation-engine
+File: Simulator.html
+Description: SPA view for editing cost drivers, cascading P&L impact,
+             and saving custom scenarios. All calculations run client-side.
+============================================================================= -->
+
+<div id="simulator-view" class="view-section space-y-6 animate-fadeIn">
+
+  <!-- 1. TOOLBAR (Lean and focused) -->
+  <div class="bg-[#fafaf9] border border-[#e5e5e5] rounded-lg p-3 shadow-sm flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-[#7a8b99]"></span>
+      <h1 class="text-sm font-bold uppercase tracking-widest text-[#333333]">Simulator</h1>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3 text-xs">
+      <div class="flex items-center gap-1.5 bg-white border border-[#e5e5e5] rounded px-2.5 py-1.5">
+        <span class="text-[#8c8c8c] font-medium">Scenario:</span>
+        <select id="sim-scenario" onchange="SimulatorController.loadSimulation()" class="bg-transparent font-bold text-[#333333] focus:outline-none cursor-pointer">
+          <option value="base">Baseline</option>
+          <option value="scenario_A">Scenario A</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-1.5 bg-white border border-[#e5e5e5] rounded px-2.5 py-1.5">
+        <span class="text-[#8c8c8c] font-medium">Year:</span>
+        <select id="sim-year" onchange="SimulatorController.loadSimulation()" class="bg-transparent font-bold text-[#333333] focus:outline-none cursor-pointer font-mono">
+          <option value="2026" selected>2026</option>
+          <option value="2025">2025</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-1.5 bg-white border border-[#e5e5e5] rounded px-2.5 py-1.5">
+        <span class="text-[#8c8c8c] font-medium">POS:</span>
+        <select id="sim-pos" onchange="SimulatorController.loadSimulation()" class="bg-transparent font-bold text-[#333333] focus:outline-none cursor-pointer font-mono">
+          <option value="ALL">All Units</option>
+          <option value="POS_0001">POS_0001</option>
+        </select>
+      </div>
+
+      <button onclick="SimulatorController.saveScenario()" class="bg-[#7a8b99] hover:bg-[#637481] text-white font-medium px-4 py-1.5 rounded transition-colors shadow-sm flex items-center gap-2">
+        <i data-lucide="save" class="w-3.5 h-3.5"></i> Save
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. DRE TABLE + ANALYSIS TOGGLE -->
+  <div class="kpi-card bg-white border border-[#e5e5e5] rounded-lg shadow-sm">
+    <div class="flex items-center justify-between p-4 border-b border-[#f0f0f0]">
+      <div>
+        <h2 class="text-xs font-bold uppercase tracking-wider text-[#595959]">Income Statement Projection</h2>
+      </div>
+      <div class="flex items-center gap-2 bg-[#fafaf9] border border-[#e5e5e5] rounded p-0.5">
+        <label class="text-[11px] font-medium px-3 py-1 rounded cursor-pointer transition-colors hover:bg-[#e6e4df]" id="label-vertical">
+          <input type="radio" name="analysisMode" value="vertical" checked onchange="SimulatorController.setAnalysisMode('vertical')" class="hidden"> Vertical (%)
+        </label>
+        <label class="text-[11px] font-medium px-3 py-1 rounded cursor-pointer transition-colors hover:bg-[#e6e4df]" id="label-horizontal">
+          <input type="radio" name="analysisMode" value="horizontal" onchange="SimulatorController.setAnalysisMode('horizontal')" class="hidden"> Horizontal (YoY)
+        </label>
+      </div>
+    </div>
+    
+    <div class="overflow-x-auto">
+      <table class="fin-table w-full text-xs" id="dre-table">
+        <thead>
+          <tr class="border-b border-[#e5e5e5] text-[#8c8c8c] font-semibold uppercase text-[10px] bg-[#fafaf9]">
+            <th class="text-left px-4 py-3">Line Item</th>
+            <th class="text-right px-4 py-3">Baseline</th>
+            <th class="text-right px-4 py-3">% of GMV</th>
+            <th class="text-center px-4 py-3 w-28">Driver Adjust (%)</th>
+            <th class="text-right px-4 py-3">Draft Amount</th>
+            <th class="text-right px-4 py-3">Impact</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#f0f0f0] font-mono text-[11px]">
+          <!-- Dynamically filled via JS -->
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="px-4 py-3 border-t border-[#f0f0f0] bg-[#fafaf9] text-[11px] flex justify-between items-center">
+      <span class="text-[#8c8c8c]">Variables highlighted can be adjusted to simulate scenarios.</span>
+      <span class="font-mono text-[#595959] uppercase tracking-wide">EBITDA Delta: <span id="ebitda-diff" class="font-bold text-[#333333]">—</span></span>
+    </div>
+  </div>
+
+  <!-- 3. INLINE NOTIFICATION AREA -->
+  <div id="sim-notification" class="hidden fixed bottom-6 right-6 bg-[#333333] text-[#e3e1db] border border-[#595959] rounded shadow-lg px-4 py-3 max-w-sm animate-slideIn font-mono text-xs"></div>
+
+</div>
+
+<!-- 4. SIMULATOR CONTROLLER -->
+<script>
+  window.SimulatorController = (function() {
+    let baselineData = []; // Immutable baseline state
+    let draftData = [];    // Recalculated volatile state
+    let adjustments = {};  // Adjustments map: { driver_id: percentage_change }
+    
+    let analysisMode = 'vertical';
+    let currentScenario = 'base';
+    let currentYear = '2026';
+    let currentPos = 'ALL';
+    
+    const editableDrivers = ['COGS', 'Operating Expenses', 'Selling Expenses', 'G&A'];
+
+    // 4.1 DATA FETCH (Includes Mock Engine for local portfolio demo)
+    async function fetchBaseline(params) {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .getSimulationBaseline(params);
+        });
+      }
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve([
+            { line_item_id: 1, line_item_name: 'Gross Revenue (GMV)', level: 1, sign: 1, total_amount: 142800000 },
+            { line_item_id: 2, line_item_name: 'Deductions', level: 2, sign: -1, total_amount: 24300000 },
+            { line_item_id: 3, line_item_name: 'Net Revenue', level: 1, sign: 1, total_amount: 118500000 },
+            { line_item_id: 4, line_item_name: 'COGS', level: 2, sign: -1, total_amount: 65175000 },
+            { line_item_id: 5, line_item_name: 'Gross Margin', level: 1, sign: 1, total_amount: 53325000 },
+            { line_item_id: 6, line_item_name: 'Operating Expenses', level: 2, sign: -1, total_amount: 23107500 },
+            { line_item_id: 7, line_item_name: 'Selling Expenses', level: 3, sign: -1, total_amount: 14235000 },
+            { line_item_id: 8, line_item_name: 'G&A', level: 3, sign: -1, total_amount: 8872500 },
+            { line_item_id: 9, line_item_name: 'EBIT', level: 1, sign: 1, total_amount: 30217500 },
+            { line_item_id: 10, line_item_name: 'EBITDA', level: 1, sign: 1, total_amount: 24200000 }
+          ]);
+        }, 150);
+      });
+    }
+
+    // 4.2 LOAD & RENDER
+    async function loadSimulation() {
+      currentScenario = document.getElementById('sim-scenario')?.value || 'base';
+      currentYear = document.getElementById('sim-year')?.value || '2026';
+      currentPos = document.getElementById('sim-pos')?.value || 'ALL';
+      
+      const data = await fetchBaseline({ 
+        scenario_id: currentScenario, 
+        year: currentYear, 
+        pos_id: currentPos === 'ALL' ? null : currentPos 
+      });
+      
+      // Deep copy to ensure baseline immutability
+      baselineData = JSON.parse(JSON.stringify(data));
+      adjustments = {}; 
+      
+      recalculatePL(); // Generates initial draft state
+    }
+
+    // 4.3 CLIENT-SIDE FINANCIAL CASCADING
+    function applyAdjustment(inputEl) {
+      const lineItemId = parseInt(inputEl.dataset.id);
+      const percentChange = parseFloat(inputEl.value) || 0;
+      
+      adjustments[lineItemId] = percentChange;
+      recalculatePL();
+    }
+
+    function recalculatePL() {
+      // 1. Clone the baseline to create a fresh draft
+      draftData = JSON.parse(JSON.stringify(baselineData));
+      
+      // 2. Apply independent driver adjustments
+      draftData.forEach(row => {
+        if (adjustments[row.line_item_id]) {
+          row.total_amount = row.total_amount * (1 + (adjustments[row.line_item_id] / 100));
+        }
+      });
+
+      // 3. Recalculate total lines (Respecting mathematical hierarchy)
+      const getAmount = (id) => draftData.find(r => r.line_item_id === id)?.total_amount || 0;
+      const updateAmount = (id, val) => {
+        const row = draftData.find(r => r.line_item_id === id);
+        if (row) row.total_amount = val;
+      };
+
+      // Gross Margin = Net Revenue - COGS
+      updateAmount(5, getAmount(3) - getAmount(4));
+      
+      // OpEx = Selling + G&A
+      updateAmount(6, getAmount(7) + getAmount(8));
+      
+      // EBITDA = Gross Margin - OpEx (Simplified for mock architecture)
+      updateAmount(10, getAmount(5) - getAmount(6));
+
+      renderTable();
+      updateEbitdaDiff();
+    }
+
+    function renderTable() {
+      const tbody = document.querySelector('#dre-table tbody');
+      if (!tbody || !draftData.length) return;
+
+      const draftGmRow = draftData.find(r => r.line_item_id === 1);
+      const gmValue = draftGmRow ? draftGmRow.total_amount : 1;
+
+      tbody.innerHTML = draftData.map(draftRow => {
+        const baseRow = baselineData.find(r => r.line_item_id === draftRow.line_item_id);
+        const indent = (draftRow.level - 1) * 16;
+        const isEditable = editableDrivers.includes(draftRow.line_item_name);
+        
+        // Vertical Analysis calculation (GAAP compliant: protects against zero division)
+        const ratio = gmValue > 0 ? (Math.abs(draftRow.total_amount) / gmValue * 100).toFixed(1) : '—';
+        
+        const diff = draftRow.total_amount - baseRow.total_amount;
+        const currentAdj = adjustments[draftRow.line_item_id] || 0;
+
+        // Semantic typography weights
+        const fontWeight = draftRow.level === 1 ? 'font-bold text-[#333333]' : 'text-[#595959]';
+        
+        let impactHtml = '—';
+        if (Math.abs(diff) > 0.01) {
+            // Sage for positive profit impact, Terracotta for negative impact
+            const isPositiveImpact = (draftRow.sign === -1 && diff < 0) || (draftRow.sign === 1 && diff > 0);
+            const colorClass = isPositiveImpact ? 'text-[#879777]' : 'text-[#d6654f]'; 
+            impactHtml = `<span class="${colorClass} font-bold">${diff > 0 ? '+' : ''}${formatCompactNumber(diff)}</span>`;
+        }
+
+        return `
+          <tr class="hover:bg-[#fcfcfc] transition-colors ${fontWeight}">
+            <td class="px-4 py-2 text-left" style="padding-left: ${indent + 16}px;">${draftRow.line_item_name}</td>
+            <td class="px-4 py-2 text-right text-[#8c8c8c]">${formatCompactNumber(baseRow.total_amount)}</td>
+            <td class="px-4 py-2 text-right">${ratio}%</td>
+            <td class="px-4 py-2 text-center">
+              ${isEditable ? `<input type="number" step="0.1" class="w-16 bg-[#fafaf9] text-right border border-[#e5e5e5] rounded px-2 py-1 text-[11px] focus:outline-none focus:border-[#7a8b99] focus:bg-white transition-colors" data-id="${draftRow.line_item_id}" onchange="SimulatorController.applyAdjustment(this)" value="${currentAdj || ''}" placeholder="0.0">` : ''}
+            </td>
+            <td class="px-4 py-2 text-right">${formatCompactNumber(draftRow.total_amount)}</td>
+            <td class="px-4 py-2 text-right">${impactHtml}</td>
+          </tr>`;
+      }).join('');
+      
+      // Re-initialize icons for newly rendered DOM elements
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function updateEbitdaDiff() {
+      const baseEbitda = baselineData.find(r => r.line_item_id === 10)?.total_amount || 0;
+      const draftEbitda = draftData.find(r => r.line_item_id === 10)?.total_amount || 0;
+      const diff = draftEbitda - baseEbitda;
+      
+      const el = document.getElementById('ebitda-diff');
+      if (Math.abs(diff) > 0.01) {
+        el.textContent = `${diff > 0 ? '+' : ''}${formatCompactNumber(diff)}`;
+        el.className = diff > 0 ? 'font-bold text-[#879777]' : 'font-bold text-[#d6654f]';
+      } else {
+        el.textContent = '—';
+        el.className = 'font-bold text-[#333333]';
+      }
+    }
+
+    function setAnalysisMode(mode) {
+      analysisMode = mode;
+      renderTable();
+    }
+
+    // 4.4 SAVING SCENARIO
+    async function saveScenario() {
+      const name = prompt('Scenario Title (keep it concise):');
+      if (!name) return;
+      
+      const overrides = Object.keys(adjustments).map(id => ({
+        pos_id: currentPos === 'ALL' ? null : currentPos,
+        driver_id: parseInt(id),
+        percentage_change: adjustments[id]
+      }));
+
+      if(overrides.length === 0) {
+          showNotification('No active adjustments to save.');
+          return;
+      }
+
+      const payload = { scenario_name: name, baseline_scenario_id: currentScenario, overrides };
+      
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(() => {
+            showNotification('Saved to BigQuery successfully.');
+          })
+          .saveScenario(payload);
+      } else {
+        showNotification('Demo Mode: Scenario cached locally.');
+      }
+    }
+
+    function showNotification(msg) {
+      const note = document.getElementById('sim-notification');
+      note.textContent = msg;
+      note.classList.remove('hidden');
+      setTimeout(() => note.classList.add('hidden'), 3000);
+    }
+
+    function formatCompactNumber(val) {
+      const num = Number(val);
+      if (isNaN(num)) return '—';
+      if (Math.abs(num) >= 1e9) return (num/1e9).toFixed(1) + 'B';
+      if (Math.abs(num) >= 1e6) return (num/1e6).toFixed(1) + 'M';
+      if (Math.abs(num) >= 1e3) return (num/1e3).toFixed(1) + 'k';
+      return num.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    }
+
+    return {
+      loadSimulation,
+      applyAdjustment,
+      setAnalysisMode,
+      saveScenario
+    };
+  })();
+
+  // SPA Initialization Hook
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('simulator-view')?.classList.contains('active') || document.getElementById('simulator-view')) {
+      SimulatorController.loadSimulation();
+    }
+  });
+</script>
