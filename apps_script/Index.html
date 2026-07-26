@@ -1,0 +1,216 @@
+<!-- =============================================================================
+COST SIMULATION ENGINE – SPA ORCHESTRATOR
+Repository: cost-simulation-engine
+File: Index.html
+Description: Single Page Application entry point. Serves all three views
+             with instant tab switching, shared state, a Global Error Boundary for resilience,
+             and a single data fetch mechanism. 
+             The SPA orchestrator is implemented in vanilla JS to minimize dependencies and maximize performance.
+============================================================================= -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cost Simulation Engine | Vetor</title>
+  <?!= include('Styles.html'); ?>
+</head>
+<body class="bg-[#f8fafc] text-[#333333] font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- ===========================================================================
+  SHELL: TOP NAVIGATION BAR
+  ========================================================================== -->
+  <header class="bg-white border-b border-[#e5e5e5] shadow-sm sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-14">
+        
+        <!-- Logo / Brand -->
+        <div class="flex items-center gap-2 select-none">
+          <span class="w-2.5 h-2.5 rounded-sm bg-[#5c6b89]"></span>
+          <span class="text-sm font-bold uppercase tracking-widest text-[#333333]">Vetor</span>
+          <span class="text-[11px] text-[#8c8c8c] font-medium ml-2 hidden sm:inline border-l border-[#e5e5e5] pl-2">Cost Simulation Engine</span>
+        </div>
+
+        <!-- Primary Navigation Tabs -->
+        <nav class="flex items-center gap-1" aria-label="Main Navigation">
+          <button onclick="App.navigateTo('dashboard')" id="tab-dashboard"
+                  class="px-3 py-1.5 text-xs font-semibold rounded transition-colors text-[#5c6b89] bg-[#f0f2f5]" aria-current="page">
+            Dashboard
+          </button>
+          <button onclick="App.navigateTo('simulator')" id="tab-simulator"
+                  class="px-3 py-1.5 text-xs font-semibold rounded transition-colors text-[#8c8c8c] hover:bg-[#f0f2f5]">
+            Simulator
+          </button>
+          <button onclick="App.navigateTo('detailed')" id="tab-detailed"
+                  class="px-3 py-1.5 text-xs font-semibold rounded transition-colors text-[#8c8c8c] hover:bg-[#f0f2f5]">
+            Detailed P&L
+          </button>
+        </nav>
+
+        <!-- Global Actions & State -->
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2 hidden md:flex" id="global-badge-container">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#829e84] animate-pulse"></span>
+            <span class="text-[10px] uppercase font-bold text-[#8c8c8c] font-mono tracking-wider" id="global-scenario-badge">BASE ACTUALS</span>
+          </div>
+          <button onclick="App.refreshAll()" class="text-[11px] font-bold text-[#5c6b89] hover:text-[#3a455c] transition-colors bg-[#f4f5f6] hover:bg-[#e2e4e8] px-3 py-1.5 rounded border border-[#e5e5e5]">
+            SYNC DATA
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===========================================================================
+  MAIN CONTENT AREA
+  ========================================================================== -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+    
+    <!-- SYSTEM FALLBACK (GLOBAL ERROR BOUNDARY) -->
+    <div id="global-error-state" class="hidden flex-col items-center justify-center min-h-[50vh] text-center animate-fadeIn">
+      <div class="w-12 h-12 rounded-full bg-[#fcf3f1] border border-[#c27c6b] flex items-center justify-center mb-4">
+        <span class="text-[#c27c6b] font-bold text-xl">!</span>
+      </div>
+      <h2 class="text-sm font-bold uppercase tracking-widest text-[#333333] mb-2">System Degradation</h2>
+      <p class="text-xs text-[#8c8c8c] max-w-md mx-auto mb-6">
+        The simulation engine encountered an unexpected exception while mounting the controllers. Please reload the application to restore the session.
+      </p>
+      <button onclick="window.location.reload()" class="px-6 py-2 bg-[#5c6b89] hover:bg-[#3a455c] text-white text-xs font-bold uppercase tracking-wider rounded transition-colors shadow-sm">
+        Reload Engine
+      </button>
+    </div>
+
+    <!-- INJECTED VIEWS -->
+    <?!= include('Dashboard.html'); ?>
+    <?!= include('Simulator.html'); ?>
+    <?!= include('DetailedDRE.html'); ?>
+  </main>
+
+  <!-- ===========================================================================
+  AUTHOR SIGNATURE (FOOTER)
+  ========================================================================== -->
+  <footer class="w-full border-t border-[#e5e5e5] bg-[#fafaf9] py-4 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 text-center">
+      <span class="text-[10px] text-[#a6a6a6] font-mono uppercase tracking-[0.2em]">
+        Designed & Engineered by <span class="font-bold text-[#8c8c8c]">Bruno Campos</span>
+      </span>
+    </div>
+  </footer>
+
+  <!-- ===========================================================================
+  SPA ORCHESTRATOR SCRIPT
+  ========================================================================== -->
+  <script>
+    window.App = (function() {
+      const views = ['dashboard', 'simulator', 'detailed'];
+      let currentView = null;
+      let isSystemDegraded = false;
+
+      function triggerErrorBoundary(error) {
+        console.error('[Vetor] Critical System Failure:', error);
+        isSystemDegraded = true;
+        
+        // Hide all views and tabs
+        document.querySelectorAll('.view-section').forEach(s => {
+          s.classList.add('hidden');
+          s.classList.remove('block', 'active');
+        });
+        document.querySelectorAll('nav button').forEach(b => b.classList.add('opacity-50', 'pointer-events-none'));
+        document.getElementById('global-badge-container')?.classList.add('hidden');
+        
+        // Show Fallback UI
+        const errorState = document.getElementById('global-error-state');
+        if (errorState) {
+          errorState.classList.remove('hidden');
+          errorState.classList.add('flex');
+        }
+      }
+
+      function navigateTo(viewName) {
+        if (isSystemDegraded || !views.includes(viewName) || viewName === currentView) return;
+
+        try {
+          // 1. Update tab styling
+          document.querySelectorAll('nav button').forEach(btn => {
+            btn.classList.remove('text-[#5c6b89]', 'bg-[#f0f2f5]');
+            btn.classList.add('text-[#8c8c8c]');
+            btn.removeAttribute('aria-current');
+          });
+          const activeTab = document.getElementById(`tab-${viewName}`);
+          if (activeTab) {
+            activeTab.classList.remove('text-[#8c8c8c]');
+            activeTab.classList.add('text-[#5c6b89]', 'bg-[#f0f2f5]');
+            activeTab.setAttribute('aria-current', 'page');
+          }
+
+          // 2. Manage View Visibility
+          document.querySelectorAll('.view-section').forEach(section => {
+            section.classList.add('hidden');
+            section.classList.remove('block', 'active');
+          });
+          const target = document.getElementById(`${viewName}-view`);
+          if (target) {
+            target.classList.remove('hidden');
+            target.classList.add('block', 'active');
+          } else {
+            throw new Error(`DOM node for view '${viewName}' not found.`);
+          }
+
+          // 3. Mount Controllers
+          if (viewName === 'dashboard' && window.DashboardController) {
+            window.DashboardController.init();
+          } else if (viewName === 'simulator' && window.SimulatorController) {
+            window.SimulatorController.loadSimulation();
+          } else if (viewName === 'detailed' && window.DetailedController) {
+            window.DetailedController.loadData();
+          } else {
+            throw new Error(`Controller mapping for '${viewName}' is missing or undefined.`);
+          }
+
+          currentView = viewName;
+          
+        } catch (error) {
+          triggerErrorBoundary(error);
+        }
+      }
+
+      function updateGlobalBadge(text) {
+        const badge = document.getElementById('global-scenario-badge');
+        if (badge) badge.textContent = text;
+      }
+
+      function refreshAll() {
+        if (isSystemDegraded) return;
+        try {
+          if (window.DashboardController) window.DashboardController.init();
+          if (window.SimulatorController) window.SimulatorController.loadSimulation();
+          if (window.DetailedController) window.DetailedController.loadData();
+        } catch (error) {
+          triggerErrorBoundary(error);
+        }
+      }
+
+      function init() {
+        try {
+          document.querySelectorAll('.view-section').forEach(section => {
+            if (section.id !== 'dashboard-view') section.classList.add('hidden');
+          });
+          navigateTo('dashboard');
+        } catch (error) {
+          triggerErrorBoundary(error);
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+
+      return { navigateTo, refreshAll, updateGlobalBadge };
+    })();
+  </script>
+
+</body>
+</html>
