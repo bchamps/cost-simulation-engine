@@ -410,16 +410,6 @@ Description: Enterprise SPA Dashboard with Executive Filter Toolbar, high-contra
       return num.toFixed(1);
     }
 
-    function formatYoY(yoy) {
-      if (yoy === null || yoy === undefined || isNaN(yoy)) return { text: 'N/A', style: 'text-slate-400' };
-      const pct = (yoy * 100).toFixed(1);
-      const isPositive = yoy >= 0;
-      return {
-        text: isPositive ? `+${pct}%` : `${pct}%`,
-        style: isPositive ? 'text-emerald-600' : 'text-rose-600'
-      };
-    }
-
     return { init: init, applyFilters: applyFilters };
   })();
 
