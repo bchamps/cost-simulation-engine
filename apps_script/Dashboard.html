@@ -43,7 +43,8 @@ Description: Enterprise SPA Dashboard with Executive Filter Toolbar, high-contra
       </div>
 
       <!-- Action Button: Simulate -->
-      <button type="button" onclick="DashboardController.applyFilters()" class="bg-slate-800 hover:bg-slate-700 text-white font-medium px-3 py-1.5 rounded transition-colors shadow-sm flex items-center gap-1.5">
+      <button type="button" onclick="DashboardController.applyFilters()"
+        class="bg-[#5c6b89] hover:bg-[#3a455c] text-white font-medium px-3 py-1.5 rounded transition-colors shadow-sm flex items-center gap-1.5">
         <span>Refresh Data</span>
       </button>
 
@@ -67,30 +68,32 @@ Description: Enterprise SPA Dashboard with Executive Filter Toolbar, high-contra
   ---------------------------------------------------------------------------- -->
   <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
     
-    <!-- 3.1 State Performance YoY Summary Table -->
-    <div class="xl:col-span-5 bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col justify-between">
+    <!-- 3.1 Rolling Forecast YoY Summary Table (5-Year View) -->
+    <div class="xl:col-span-5 bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col justify-between overflow-x-auto">
       <div>
         <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700">Performance by State (UF)</h2>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700">Rolling Forecast (P&L)</h2>
           <span class="text-[11px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-slate-600 font-mono">
-            YoY Comparison
+            Continuous YoY
           </span>
         </div>
         
         <div class="overflow-y-auto max-h-[340px]">
-          <table class="w-full text-left text-xs" id="summary-table">
+          <table class="w-full text-left text-xs whitespace-nowrap" id="rolling-table">
             <thead>
               <tr class="border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
-                <th class="pb-2">State</th>
-                <th class="pb-2 text-right">GMV</th>
-                <th class="pb-2 text-right">YoY</th>
-                <th class="pb-2 text-right">Net Rev</th>
-                <th class="pb-2 text-right">YoY</th>
-                <th class="pb-2 text-right">EBITDA</th>
-                <th class="pb-2 text-right">YoY</th>
+                <th class="pb-2 pr-4">P&L Item</th>
+                <th class="pb-2 px-2 text-right">24 (Act)</th>
+                <th class="pb-2 px-2 text-right">25 (Act)</th>
+                <th class="pb-2 px-2 text-right text-blue-600">26 (Fcst)</th>
+                <th class="pb-2 px-2 text-right bg-slate-50">YoY '26</th>
+                <th class="pb-2 px-2 text-right text-blue-600">27 (Fcst)</th>
+                <th class="pb-2 px-2 text-right bg-slate-50">YoY '27</th>
+                <th class="pb-2 px-2 text-right text-blue-600">28 (Fcst)</th>
+                <th class="pb-2 px-2 text-right bg-slate-50">YoY '28</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100 font-mono text-[11px]">
+            <tbody id="rolling-table-body" class="divide-y divide-slate-100 font-mono text-[11px]">
               <!-- Rendered dynamically -->
             </tbody>
           </table>
@@ -98,7 +101,7 @@ Description: Enterprise SPA Dashboard with Executive Filter Toolbar, high-contra
       </div>
       
       <div class="mt-3 pt-2 border-t border-slate-100 text-[11px] text-slate-400 flex justify-between font-sans">
-        <span>Top 5 UFs represent 74% of total GMV</span>
+        <span>Macro P&L view from actuals to simulated projections</span>
         <span class="font-mono text-slate-500">Live BigQuery Sync</span>
       </div>
     </div>
@@ -162,9 +165,14 @@ Description: Enterprise SPA Dashboard with Executive Filter Toolbar, high-contra
 
 </div>
 
-<!-- =============================================================================
-5. DASHBOARD CONTROLLER & ASYNCHRONOUS LIFECYCLE
-============================================================================= -->
+<!-- 5. BRAZIL EBITDA MARGIN HEATMAP -->
+<div class="bg-white border border-[#e5e5e5] rounded-lg p-4 shadow-sm mb-6">
+  <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-3 mb-3">
+    <h2 class="text-xs font-bold uppercase tracking-wider text-[#595959]">Geographic EBITDA Margin</h2>
+    <span class="text-[11px] bg-[#fafaf9] border border-[#e5e5e5] px-2 py-0.5 rounded text-[#8c8c8c] font-mono">By State</span>
+  </div>
+  <div id="brazil-map" class="w-full h-[400px]"></div>
+</div>
 <script>
   /**
    * Global Dashboard Controller
@@ -194,12 +202,13 @@ Description: Enterprise SPA Dashboard with Executive Filter Toolbar, high-contra
               { metric: 'Network EBITDA', absolute_value: 24200000, cagr_decimal: 0.152 },
               { metric: 'Avg OPEX / POS', absolute_value: 1245, cagr_decimal: -0.034 }
             ],
-            summaryTable: [
-              { state: 'SP', total_gmv: 68400000, gmv_yoy: 0.142, total_net_revenue: 56800000, net_revenue_yoy: 0.121, total_ebitda: 14200000, ebitda_yoy: 0.184 },
-              { state: 'RJ', total_gmv: 24100000, gmv_yoy: 0.045, total_net_revenue: 19800000, net_revenue_yoy: 0.032, total_ebitda: 3800000, ebitda_yoy: -0.021 },
-              { state: 'MG', total_gmv: 18500000, gmv_yoy: 0.098, total_net_revenue: 15400000, net_revenue_yoy: 0.085, total_ebitda: 2900000, ebitda_yoy: 0.112 },
-              { state: 'PR', total_gmv: 14200000, gmv_yoy: -0.012, total_net_revenue: 11900000, net_revenue_yoy: -0.018, total_ebitda: 1800000, ebitda_yoy: -0.045 },
-              { state: 'RS', total_gmv: 11200000, gmv_yoy: 0.065, total_net_revenue: 9400000, net_revenue_yoy: 0.054, total_ebitda: 1500000, ebitda_yoy: 0.078 }
+            rollingData: [
+              { name: "Gross Revenue", type: "num", act24: 120500000, act25: 142800000, fcst26: 165000000, fcst27: 189000000, fcst28: 215000000 },
+              { name: "Deductions", type: "num", act24: -20100000, act25: -24300000, fcst26: -28050000, fcst27: -32130000, fcst28: -36550000 },
+              { name: "Net Revenue", type: "num", isBold: true, act24: 100400000, act25: 118500000, fcst26: 136950000, fcst27: 156870000, fcst28: 178450000 },
+              { name: "COGS", type: "num", act24: -56000000, act25: -65175000, fcst26: -74500000, fcst27: -84000000, fcst28: -94500000 },
+              { name: "SG&A (OpEx)", type: "num", act24: -21000000, act25: -23107500, fcst26: -25000000, fcst27: -26500000, fcst28: -28500000 },
+              { name: "EBITDA", type: "num", isBold: true, act24: 23400000, act25: 30217500, fcst26: 37450000, fcst27: 46370000, fcst28: 55450000 }
             ],
             waterfall: [
               { lever_name: '2024 Base', accumulated_variation: 18500000, is_total: true },
@@ -231,10 +240,11 @@ Description: Enterprise SPA Dashboard with Executive Filter Toolbar, high-contra
       try {
         const data = await fetchDashboardData({ year, scenario });
         renderKPICards(data.cards);
-        renderSummaryTable(data.summaryTable);
+        renderRollingTable(data.rollingData);
         renderWaterfallChart(data.waterfall);
         renderScatterChart(data.scatter);
         renderUFRanking(data.scatter);
+        renderBrazilMap(data.scatter);
         
         if (typeof lucide !== 'undefined') lucide.createIcons();
         setupResponsiveCharts();
@@ -249,7 +259,7 @@ Description: Enterprise SPA Dashboard with Executive Filter Toolbar, high-contra
       init({ year, scenario });
     }
 
-    // 5.3 RENDER METHODS (High Contrast & Minimalist Palette)
+    // 5.3 RENDER METHODS
     function renderKPICards(cards) {
       const container = document.getElementById('kpi-cards');
       if (!cards || !cards.length) return;
@@ -260,8 +270,8 @@ Description: Enterprise SPA Dashboard with Executive Filter Toolbar, high-contra
         const isPositive = card.cagr_decimal >= 0;
         
         const badgeStyle = isPositive 
-          ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' 
-          : 'text-rose-700 bg-rose-50 border border-rose-200';
+          ? 'text-[#829e84] bg-[#f0f4f0] border border-[#d0ddd0]' 
+          : 'text-[#c27c6b] bg-[#faf2f0] border border-[#e8d0ca]';
 
         return `
           <div class="bg-white border border-slate-200 p-4 rounded-lg shadow-sm flex flex-col justify-between transition-all hover:border-slate-300">
@@ -277,24 +287,37 @@ Description: Enterprise SPA Dashboard with Executive Filter Toolbar, high-contra
       }).join('');
     }
 
-    function renderSummaryTable(rows) {
-      const tbody = document.querySelector('#summary-table tbody');
-      if (!rows || !rows.length) return;
+    function renderRollingTable(rows) {
+      const tbody = document.getElementById('rolling-table-body');
+      if (!tbody || !rows || !rows.length) return;
 
-      tbody.innerHTML = rows.map(r => {
-        const gmvYoY = formatYoY(r.gmv_yoy);
-        const revYoY = formatYoY(r.net_revenue_yoy);
-        const ebitdaYoY = formatYoY(r.ebitda_yoy);
+      tbody.innerHTML = rows.map(row => {
+        // Multi-year YoY Math
+        const yoy26 = (row.fcst26 - row.act25) / Math.abs(row.act25);
+        const yoy27 = (row.fcst27 - row.fcst26) / Math.abs(row.fcst26);
+        const yoy28 = (row.fcst28 - row.fcst27) / Math.abs(row.fcst27);
 
+        // Expense logic: an absolute value increase in COGS/SG&A is "bad" (red).
+        const isExpense = row.name === "COGS" || row.name.includes("SG&A") || row.name === "Deductions";
+        const getStyle = (val) => {
+          if (val > 0.005) return isExpense ? 'text-[#c27c6b]' : 'text-[#829e84]';
+          if (val < -0.005) return isExpense ? 'text-[#829e84]' : 'text-[#c27c6b]';
+          return 'text-[#64748b]';
+        };
+
+        const fontClass = row.isBold ? "font-bold text-slate-800" : "text-slate-600";
+        
         return `
           <tr class="hover:bg-slate-50 transition-colors">
-            <td class="py-2.5 font-bold text-slate-800 font-sans">${r.state}</td>
-            <td class="py-2.5 text-right text-slate-700">${formatCompactNumber(r.total_gmv)}</td>
-            <td class="py-2.5 text-right font-bold ${gmvYoY.style}">${gmvYoY.text}</td>
-            <td class="py-2.5 text-right text-slate-700">${formatCompactNumber(r.total_net_revenue)}</td>
-            <td class="py-2.5 text-right font-bold ${revYoY.style}">${revYoY.text}</td>
-            <td class="py-2.5 text-right text-slate-700">${formatCompactNumber(r.total_ebitda)}</td>
-            <td class="py-2.5 text-right font-bold ${ebitdaYoY.style}">${ebitdaYoY.text}</td>
+            <td class="py-2.5 pr-4 text-left font-sans text-xs ${fontClass}">${row.name}</td>
+            <td class="py-2.5 px-2 text-right">${formatCompactNumber(row.act24)}</td>
+            <td class="py-2.5 px-2 text-right">${formatCompactNumber(row.act25)}</td>
+            <td class="py-2.5 px-2 text-right font-semibold text-[#5c6b89] bg-[#f0f2f5]-50/30">${formatCompactNumber(row.fcst26)}</td>
+            <td class="py-2.5 px-2 text-right font-bold bg-slate-50 ${getStyle(yoy26)}">${yoy26 > 0 ? '+' : ''}${(yoy26*100).toFixed(1)}%</td>
+            <td class="py-2.5 px-2 text-right font-semibold text-[#5c6b89] bg-[#f0f2f5]-50/30">${formatCompactNumber(row.fcst27)}</td>
+            <td class="py-2.5 px-2 text-right font-bold bg-slate-50 ${getStyle(yoy27)}">${yoy27 > 0 ? '+' : ''}${(yoy27*100).toFixed(1)}%</td>
+            <td class="py-2.5 px-2 text-right font-semibold text-[#5c6b89] bg-[#f0f2f5]-50/30">${formatCompactNumber(row.fcst28)}</td>
+            <td class="py-2.5 px-2 text-right font-bold bg-slate-50 ${getStyle(yoy28)}">${yoy28 > 0 ? '+' : ''}${(yoy28*100).toFixed(1)}%</td>
           </tr>`;
       }).join('');
     }
@@ -374,7 +397,7 @@ Description: Enterprise SPA Dashboard with Executive Filter Toolbar, high-contra
       container.innerHTML = sorted.map((item, index) => {
         const margin = item.ebitda_margin_pct ? (Number(item.ebitda_margin_pct) * 100).toFixed(1) + '%' : '—';
         const isTop3 = index < 3;
-        const badgeStyle = isTop3 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 font-medium';
+        const badgeStyle = isTop3 ? 'bg-[#5c6b89] text-white' : 'bg-[#f0f2f5] text-[#8c8c8c] font-medium';
 
         return `
           <div class="flex items-center justify-between p-2.5 rounded border border-slate-200 bg-white hover:border-slate-300 transition-colors">
@@ -387,11 +410,48 @@ Description: Enterprise SPA Dashboard with Executive Filter Toolbar, high-contra
                 <div class="text-[10px] text-slate-400 font-mono">GMV: $${formatCompactNumber(item.gmv)}</div>
               </div>
             </div>
-            <div class="text-right font-mono font-bold text-xs text-emerald-600">
+            <div class="text-right font-mono font-bold text-xs text-[#829e84]">
               ${margin}
             </div>
           </div>`;
       }).join('');
+    }
+
+    async function renderBrazilMap(scatterData) {
+      const dom = document.getElementById('brazil-map');
+      if (!dom || typeof echarts === 'undefined') return;
+
+      const chart = echarts.init(dom);
+      activeCharts.push(chart);
+
+      try {
+        if (!echarts.getMap('Brazil')) {
+          const res = await fetch('https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson');
+          echarts.registerMap('Brazil', await res.json());
+        }
+        chart.setOption({
+          tooltip: {
+            trigger: 'item',
+            formatter: p => `${p.name}: ${p.value ? p.value.toFixed(1) + '%' : '—'}`
+          },
+          visualMap: {
+            show: true,
+            min: 10,
+            max: 25,
+            inRange: { color: ['#f0f2f5', '#5c6b89'] },
+            text: ['High Margin', 'Low Margin'],
+            textStyle: { color: '#8c8c8c', fontSize: 10 }
+          },
+          series: [{
+            type: 'map',
+            map: 'Brazil',
+            roam: false,
+            data: scatterData.map(d => ({ name: d.state, value: Number(d.ebitda_margin_pct) * 100 }))
+          }]
+        });
+      } catch(e) {
+        console.warn('[Dashboard] Brazil map GeoJSON could not be loaded:', e);
+      }
     }
 
     function setupResponsiveCharts() {
@@ -414,7 +474,6 @@ Description: Enterprise SPA Dashboard with Executive Filter Toolbar, high-contra
   })();
 
   // 5.4 SMART LIFECYCLE TRIGGER
-  // Runs immediately if DOM is ready, otherwise waits for DOMContentLoaded
   if (document.readyState !== 'loading') {
     window.DashboardController.init();
   } else {
